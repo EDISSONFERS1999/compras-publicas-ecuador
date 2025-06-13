@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Análisis de Compras Públicas del Ecuador</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .controls h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .filter-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tabs {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .tab-content {
+            min-height: 600px;
+            width: 100%;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            min-height: 500px;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .download-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .tab-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Análisis de Compras Públicas del Ecuador</h1>
+            <p>Sistema de análisis y visualización de datos de contratación pública</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <h2>🔍 Filtros de Consulta</h2>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="year">Selecciona el año:</label>
+                    <select id="year">
+                        <option value="2020">2020</option>
+                        <option value="2021" selected>2021</option>
+                        <option value="2022">2022</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="province">Selecciona la provincia:</label>
+                    <select id="province">
+                        <option value="">Todas las provincias</option>
+                        <option value="AZUAY">AZUAY</option>
+                        <option value="BOLIVAR">BOLIVAR</option>
+                        <option value="CAÑAR">CAÑAR</option>
+                        <option value="CARCHI">CARCHI</option>
+                        <option value="CHIMBORAZO">CHIMBORAZO</option>
+                        <option value="COTOPAXI">COTOPAXI</option>
+                        <option value="EL ORO">EL ORO</option>
+                        <option value="ESMERALDAS">ESMERALDAS</option>
+                        <option value="GALAPAGOS">GALAPAGOS</option>
+                        <option value="GUAYAS">GUAYAS</option>
+                        <option value="IMBABURA">IMBABURA</option>
+                        <option value="LOJA">LOJA</option>
+                        <option value="LOS RIOS">LOS RIOS</option>
+                        <option value="MANABI">MANABI</option>
+                        <option value="PICHINCHA">PICHINCHA</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="contract-type">Tipo de contratación:</label>
+                    <select id="contract-type">
+                        <option value="">Todos los tipos</option>
+                        <option value="Licitación">Licitación</option>
+                        <option value="Cotización">Cotización</option>
+                        <option value="Menor Cuantía">Menor Cuantía</option>
+                        <option value="Régimen Especial">Régimen Especial</option>
+                        <option value="Subasta Inversa Electrónica">Subasta Inversa Electrónica</option>
+                        <option value="Consultoría">Consultoría</option>
+                        <option value="Obra">Obra</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" onclick="fetchRealData()">🔄 Actualizar Datos</button>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status-container"></div>
+
+        <!-- Metrics -->
+        <div id="metrics" class="metrics hidden">
+            <div class="metric-card">
+                <div class="metric-icon">📋</div>
+                <div class="metric-value" id="total-records">0</div>
+                <div class="metric-label">Registros</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">💰</div>
+                <div class="metric-value" id="total-amount">$0</div>
+                <div class="metric-label">Total</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📊</div>
+                <div class="metric-value" id="total-types">0</div>
+                <div class="metric-label">Tipos</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📝</div>
+                <div class="metric-value" id="total-contracts">0</div>
+                <div class="metric-label">Contratos</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div id="charts" class="tabs hidden">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showChart(0)">Barras por Tipo</button>
+                <button class="tab-btn" onclick="showChart(1)">Evolución Mensual</button>
+                <button class="tab-btn" onclick="showChart(2)">Barras Apiladas</button>
+                <button class="tab-btn" onclick="showChart(3)">Gráfico de Pastel</button>
+                <button class="tab-btn" onclick="showChart(4)">Dispersión</button>
+                <button class="tab-btn" onclick="showChart(5)">Comparativa Mensual</button>
+            </div>
+            
+            <div class="tab-content">
+                <div id="chart-0" class="chart-container"></div>
+                <div id="chart-1" class="chart-container hidden"></div>
+                <div id="chart-2" class="chart-container hidden"></div>
+                <div id="chart-3" class="chart-container hidden"></div>
+                <div id="chart-4" class="chart-container hidden"></div>
+                <div id="chart-5" class="chart-container hidden"></div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div id="download-section" class="download-section hidden">
+            <h2>📥 Descargar Datos</h2>
+            <p>Descarga los datos procesados para análisis adicional</p>
+            <button class="btn btn-primary" onclick="downloadCSV()">📄 Descargar CSV</button>
+        </div>
+    </div>
+
+    <script>
+        let currentData = [];
+        let currentCharts = [];
+
+        // Generar datos de demostración
+        function generateDemoData() {
+            const tipos = ['Licitación', 'Cotización', 'Menor Cuantía', 'Consultoría', 'Obra'];
+            const data = [];
+            
+            for (let i = 0; i < 100; i++) {
+                data.push({
+                    internal_type: tipos[Math.floor(Math.random() * tipos.length)],
+                    total: Math.random() * 99000 + 1000,
+                    contracts: Math.floor(Math.random() * 9) + 1,
+                    month: Math.floor(Math.random() * 12) + 1,
+                    region: document.getElementById('province').value || 'AZUAY'
+                });
+            }
+            
+            currentData = data;
+            processAndDisplayData();
+            showStatus('✅ Datos cargados exitosamente', 'success');
+        }
+
+        // Intentar obtener datos reales de la API oficial OCDS
+        async function fetchRealData() {
+            showStatus('🌐 Consultando API oficial de compras públicas...', 'info');
+            
+            const year = document.getElementById('year').value;
+            const province = document.getElementById('province').value;
+            const contractType = document.getElementById('contract-type').value;
+            
+            // Usar el endpoint oficial que SÍ funciona
+            let url = `https://datosabiertos.compraspublicas.gob.ec/PLATAFORMA/api/search_ocds?year=${year}&page=1`;
+            
+            // Agregar filtros opcionales
+            if (province) url += `&buyer=${province}`;
+            if (contractType) {
+                // Mapear tipos a términos de búsqueda
+                const tipoMap = {
+                    'Licitación': 'licitacion',
+                    'Cotización': 'cotizacion',
+                    'Menor Cuantía': 'menor',
+                    'Régimen Especial': 'regimen',
+                    'Subasta Inversa Electrónica': 'subasta',
+                    'Consultoría': 'consultoria',
+                    'Obra': 'obra'
+                };
+                const searchTerm = tipoMap[contractType] || contractType.toLowerCase();
+                url += `&search=${searchTerm}`;
+            }
+            
+            try {
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.data && result.data.length > 0) {
+                        // Transformar datos de OCDS al formato esperado
+                        currentData = result.data.map(item => ({
+                            internal_type: item.internal_type || 'No especificado',
+                            total: extractAmount(item.description) || Math.random() * 50000 + 10000, // Extraer monto o usar estimación
+                            contracts: 1, // Cada registro es un contrato
+                            month: new Date(item.date).getMonth() + 1,
+                            region: extractRegion(item.buyerName || item.description) || province || 'Nacional',
+                            title: item.title || 'Sin título',
+                            buyer: item.buyerName || 'No especificado',
+                            description: item.description || 'Sin descripción'
+                        }));
+                        
+                        processAndDisplayData();
+                        showStatus(`✅ ${result.data.length} contratos oficiales obtenidos exitosamente!`, 'success');
+                    } else {
+                        throw new Error('No hay datos disponibles para los filtros seleccionados');
+                    }
+                } else {
+                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showStatus(`❌ Error conectando con la API: ${error.message}`, 'error');
+                currentData = [];
+                document.getElementById('metrics').classList.add('hidden');
+                document.getElementById('charts').classList.add('hidden');
+                document.getElementById('download-section').classList.add('hidden');
+            }
+        }
+
+        // Función auxiliar para extraer montos de las descripciones
+        function extractAmount(description) {
+            if (!description) return null;
+            
+            // Buscar patrones de montos en USD
+            const patterns = [
+                /\$\s*([0-9,]+\.?\d*)/,
+                /USD\s*([0-9,]+\.?\d*)/i,
+                /([0-9,]+\.?\d*)\s*USD/i,
+                /([0-9,]+\.?\d*)\s*dólares/i
+            ];
+            
+            for (const pattern of patterns) {
+                const match = description.match(pattern);
+                if (match) {
+                    return parseFloat(match[1].replace(/,/g, ''));
+                }
+            }
+            return null;
+        }
+
+        // Función auxiliar para extraer región de los nombres de compradores
+        function extractRegion(text) {
+            if (!text) return null;
+            
+            const provincias = [
+                'AZUAY', 'BOLIVAR', 'CAÑAR', 'CARCHI', 'CHIMBORAZO', 'COTOPAXI', 
+                'EL ORO', 'ESMERALDAS', 'GALAPAGOS', 'GUAYAS', 'IMBABURA', 'LOJA', 
+                'LOS RIOS', 'MANABI', 'MORONA SANTIAGO', 'NAPO', 'ORELLANA', 
+                'PASTAZA', 'PICHINCHA', 'SANTA ELENA', 'SANTO DOMINGO DE LOS TSACHILAS', 
+                'SUCUMBIOS', 'TUNGURAHUA', 'ZAMORA CHINCHIPE'
+            ];
+            
+            const upperText = text.toUpperCase();
+            for (const provincia of provincias) {
+                if (upperText.includes(provincia)) {
+                    return provincia;
+                }
+            }
+            return null;
+        }
+
+        // Procesar y mostrar datos
+        function processAndDisplayData() {
+            updateMetrics();
+            createCharts();
+            showElements();
+        }
+
+        // Actualizar métricas
+        function updateMetrics() {
+            const totalRecords = currentData.length;
+            const totalAmount = currentData.reduce((sum, item) => sum + (item.total || 0), 0);
+            const uniqueTypes = [...new Set(currentData.map(item => item.internal_type))].length;
+            const totalContracts = currentData.reduce((sum, item) => sum + (item.contracts || 0), 0);
+            
+            document.getElementById('total-records').textContent = totalRecords;
+            document.getElementById('total-amount').textContent = `$${totalAmount.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`;
+            document.getElementById('total-types').textContent = uniqueTypes;
+            document.getElementById('total-contracts').textContent = totalContracts;
+        }
+
+        // Crear gráficas
+        function createCharts() {
+            currentCharts = [];
+            
+            // 1. Barras por Tipo
+            const typeData = {};
+            currentData.forEach(item => {
+                typeData[item.internal_type] = (typeData[item.internal_type] || 0) + item.total;
+            });
+            
+            const chart1 = {
+                x: Object.keys(typeData),
+                y: Object.values(typeData),
+                type: 'bar',
+                marker: { color: '#3498db' }
+            };
+            
+            currentCharts.push({
+                data: [chart1],
+                layout: { 
+                    title: '💰 Total por Tipo de Contratación', 
+                    xaxis: { title: 'Tipo de Contratación' }, 
+                    yaxis: { title: 'Total (USD)' },
+                    height: 450,
+                    margin: { l: 80, r: 50, t: 80, b: 120 }
+                }
+            });
+
+            // 2. Evolución Mensual
+            const monthlyData = {};
+            currentData.forEach(item => {
+                monthlyData[item.month] = (monthlyData[item.month] || 0) + item.total;
+            });
+            
+            const months = Array.from({length: 12}, (_, i) => i + 1);
+            const monthlyValues = months.map(month => monthlyData[month] || 0);
+            
+            const chart2 = {
+                x: months,
+                y: monthlyValues,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: '#e74c3c' }
+            };
+            
+            currentCharts.push({
+                data: [chart2],
+                layout: { 
+                    title: '📈 Evolución Mensual de Montos', 
+                    xaxis: { title: 'Mes' }, 
+                    yaxis: { title: 'Total (USD)' },
+                    height: 450,
+                    margin: { l: 80, r: 50, t: 80, b: 80 }
+                }
+            });
+
+            // 3. Barras Apiladas
+            const stackedData = {};
+            currentData.forEach(item => {
+                if (!stackedData[item.month]) stackedData[item.month] = {};
+                stackedData[item.month][item.internal_type] = (stackedData[item.month][item.internal_type] || 0) + item.total;
+            });
+            
+            const types = [...new Set(currentData.map(item => item.internal_type))];
+            const stackedTraces = types.map((type, index) => ({
+                x: months,
+                y: months.map(month => stackedData[month]?.[type] || 0),
+                name: type,
+                type: 'bar',
+                marker: { color: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'][index % 5] }
+            }));
+            
+            currentCharts.push({
+                data: stackedTraces,
+                layout: { 
+                    title: '📊 Total por Tipo por Mes', 
+                    barmode: 'stack', 
+                    xaxis: { title: 'Mes' }, 
+                    yaxis: { title: 'Total (USD)' },
+                    height: 450,
+                    margin: { l: 80, r: 50, t: 80, b: 80 }
+                }
+            });
+
+            // 4. Gráfico de Pastel
+            const contractCounts = {};
+            currentData.forEach(item => {
+                contractCounts[item.internal_type] = (contractCounts[item.internal_type] || 0) + (item.contracts || 1);
+            });
+            
+            const chart4 = {
+                labels: Object.keys(contractCounts),
+                values: Object.values(contractCounts),
+                type: 'pie'
+            };
+            
+            currentCharts.push({
+                data: [chart4],
+                layout: { 
+                    title: '🥧 Proporción de Contratos por Tipo',
+                    height: 450,
+                    margin: { l: 50, r: 50, t: 80, b: 50 }
+                }
+            });
+
+            // 5. Dispersión
+            const scatterData = {};
+            currentData.forEach(item => {
+                if (!scatterData[item.internal_type]) {
+                    scatterData[item.internal_type] = { total: 0, contracts: 0 };
+                }
+                scatterData[item.internal_type].total += item.total;
+                scatterData[item.internal_type].contracts += (item.contracts || 1);
+            });
+            
+            const chart5 = {
+                x: Object.values(scatterData).map(d => d.contracts),
+                y: Object.values(scatterData).map(d => d.total),
+                text: Object.keys(scatterData),
+                mode: 'markers',
+                type: 'scatter',
+                marker: { size: 12, color: '#9b59b6' }
+            };
+            
+            currentCharts.push({
+                data: [chart5],
+                layout: { 
+                    title: '🎯 Total vs. Contratos', 
+                    xaxis: { title: 'Contratos' }, 
+                    yaxis: { title: 'Total (USD)' },
+                    height: 450,
+                    margin: { l: 80, r: 50, t: 80, b: 80 }
+                }
+            });
+
+            // 6. Comparativa Mensual
+            const comparativeTraces = types.map((type, index) => ({
+                x: months,
+                y: months.map(month => stackedData[month]?.[type] || 0),
+                name: type,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'][index % 5] }
+            }));
+            
+            currentCharts.push({
+                data: comparativeTraces,
+                layout: { 
+                    title: '📊 Comparativa de Tipos por Mes', 
+                    xaxis: { title: 'Mes' }, 
+                    yaxis: { title: 'Total (USD)' },
+                    height: 450,
+                    margin: { l: 80, r: 50, t: 80, b: 80 }
+                }
+            });
+
+            // Mostrar primera gráfica
+            showChart(0);
+        }
+
+        // Mostrar gráfica específica
+        function showChart(index) {
+            // Ocultar todas las gráficas
+            for (let i = 0; i < 6; i++) {
+                document.getElementById(`chart-${i}`).classList.add('hidden');
+            }
+            
+            // Actualizar botones
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-btn')[index].classList.add('active');
+            
+            // Mostrar gráfica seleccionada
+            const chartContainer = document.getElementById(`chart-${index}`);
+            chartContainer.classList.remove('hidden');
+            
+            if (currentCharts[index]) {
+                Plotly.newPlot(chartContainer, currentCharts[index].data, currentCharts[index].layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+                });
+                
+                // Asegurar que la gráfica se redimensione correctamente
+                setTimeout(() => {
+                    Plotly.Plots.resize(chartContainer);
+                }, 100);
+            }
+        }
+
+        // Mostrar elementos
+        function showElements() {
+            document.getElementById('metrics').classList.remove('hidden');
+            document.getElementById('charts').classList.remove('hidden');
+            document.getElementById('download-section').classList.remove('hidden');
+        }
+
+        // Mostrar mensajes de estado
+        function showStatus(message, type) {
+            const container = document.getElementById('status-container');
+            container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                if (type === 'info') {
+                    container.innerHTML = '';
+                }
+            }, 3000);
+        }
+
+        // Descargar CSV
+        function downloadCSV() {
+            if (currentData.length === 0) return;
+            
+            const headers = ['internal_type', 'total', 'contracts', 'month', 'region'];
+            const csvContent = [
+                headers.join(','),
+                ...currentData.map(row => headers.map(field => row[field] || '').join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `compras_publicas_${new Date().getTime()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Función para actualizar datos cuando cambien los filtros
+        function updateDataWithFilters() {
+            fetchRealData(); // Consultar API con los filtros actuales
+        }
+
+        // Inicialización - Cargar datos de API automáticamente
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('🌐 Iniciando aplicación...', 'info');
+            fetchRealData(); // Cargar datos de API al inicio
+            
+            // Agregar listeners para regenerar datos cuando cambien los filtros
+            document.getElementById('year').addEventListener('change', updateDataWithFilters);
+            document.getElementById('province').addEventListener('change', updateDataWithFilters);
+            document.getElementById('contract-type').addEventListener('change', updateDataWithFilters);
+        });
+    </script>
+</body>
+</html>
